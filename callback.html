@@ -1,0 +1,73 @@
+<html>
+  <head>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap" rel="stylesheet">
+    <style>
+      body {
+        background-color: black;
+      }
+      h1 {
+        color: #1DB954;
+        font-family: 'Cutive Mono', monospace;
+      }
+      form {
+        color: white;
+        font-family: 'Cutive Mono', monospace;
+      }
+      h3 {
+        color: #1DB954;
+        font-family: 'Cutive Mono', monospace;
+        font-style: oblique;
+      }
+      h2 {
+        color: white;
+        font-family: 'Cutive Mono', monospace;
+      }
+      input[type=submit] {
+        background-color: #1DB954;
+        border: none;
+        color: white;
+        padding: 16px 32px;
+        text-decoration: none;
+        margin: 4px 2px;
+        cursor: pointer;
+        font-family: 'Cutive Mono', monospace;
+      }
+
+      #song {
+        color: white;
+        font-family:'Cutive Mono', monospace;
+      }
+      #horoscope {
+        color: white;
+        font-family:'Cutive Mono', monospace;
+      }
+      #sign {
+        color: #1DB954;
+        font-family:'Cutive Mono', monospace;
+        font-size: 20px;
+        font-style: oblique;
+      }
+      p {
+        color: white;
+        font-family: 'Cutive Mono', monospace;
+      }
+    </style>
+  </head>
+
+  <h1>zodify</h1>
+
+  <h2>you're almost there...</h3>
+
+  <body>
+    <h3>next, i need some information about your birthday. don't worry, you won't need to text your mother for your birth time.</h3>
+    <form action='/horoscope' method="POST">
+      <label for="birth_month">birth month:</label><br>
+      <input type="text" id="birth_month" name="birth_month"><br>
+      <label for="birth_date">birth date:</label><br>
+      <input type="number" id="birth_date" name="birth_date"><br>
+      <input type="submit" value="submit">
+    </form>
+  </body>
+
+</html>

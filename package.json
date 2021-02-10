@@ -1,0 +1,24 @@
+{
+  "name": "zodify",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "btoa": "^1.2.1",
+    "cheerio": "^1.0.0-rc.5",
+    "cookie-parser": "^1.4.5",
+    "express": "^4.17.1",
+    "genius-lyrics-api": "^3.0.6",
+    "get-zodiac-sign": "^1.0.3",
+    "ibm-watson": "^5.7.3",
+    "musixmatch": "^0.1.6",
+    "node-fetch": "^2.6.1",
+    "zodiac-signs": "^1.1.0"
+  }
+}
