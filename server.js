@@ -319,6 +319,6 @@ res.redirect('https://accounts.spotify.com/authorize' +
 });
 
 
-app.listen(8000, function () {
-    console.log("Server is running on localhost8000");
+app.listen(process.env.PORT || 8000, function () {
+    console.log("Server is running");
 });
