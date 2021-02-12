@@ -28,7 +28,7 @@ const app = express();
 // Spotify Credentials
 var spot_clientId = "37a4c67a31324d55b9a470dd894574a8";
 var spot_clientSecret = "f7f1a4cd9b4045038a69ec390e0c9352";
-var redirect_uri = "http://localhost:8000/callback";
+var redirect_uri = "https://zodify.herokuapp.com/callback";
 
 //Local testing callback: "http://localhost:8000/callback";
 // Heroku callback: "https://zodify.herokuapp.com/callback"
