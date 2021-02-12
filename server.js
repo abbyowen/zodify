@@ -26,11 +26,11 @@ const zodiacSign = require('zodiac-signs')('en-US');
 const app = express();
 
 // Spotify Credentials
-var spot_clientId = "37a4c67a31324d55b9a470dd894574a8";
-var spot_clientSecret = "f7f1a4cd9b4045038a69ec390e0c9352";
-var redirect_uri = "http://localhost:8000/callback";
+var spot_clientId = "e84e8a4f8df044d994aba8c62c0e1ae8";
+var spot_clientSecret = "354e8292b27445c5a2c85b9978d66906";
+var redirect_uri = "http://localhost:5000/callback";
 
-//Local testing callback: "http://localhost:8000/callback";
+//Local testing callback: "http://localhost:5000/callback";
 // Heroku callback: "https://zodify.herokuapp.com/callback"
 
 // IBM Credentials
@@ -151,7 +151,7 @@ async function soundMoodList(tracks, token, moods, res) {
       if (moods.includes(data.tone)) {
         console.log(`match found: ${data.name}`);
         // Add song title to the HTML
-        spot_res_page('body').append(`<p>${data.name}</p>`);
+        spot_res_page('#call_results').append(`<p>${data.name}</p>`);
 
       }
   });
@@ -206,8 +206,6 @@ app.get('/callback', function(req, res) {
     },
     body: formBody
   }).then(data => data.json()).then(function(response) {
-    // Log the response
-    console.log(response);
 
     // Save the access token and refresh token into variables
     var accessToken = response.access_token;
@@ -241,11 +239,19 @@ app.post('/horoscope', function(req, res) {
   fetch(`https://aztro.sameerkumar.website/?sign=${zodiac}&day=today`, {
     method: "POST"
   }).then(data => data.json()).then(function(response) {
+    console.log(`div: ${spot_res_page('#call_results')}`);
+    if (!spot_res_page('#call_results').is(':empty')) {
+      console.log("not empty");
+      spot_res_page('#call_results').empty();
+
+      console.log(spot_res_page('#call_results').html());
+    }
+
     // Store daily prediction
     var horoscope = response.description;
     // Add daily horoscope to the HTML body
-    spot_res_page('body').append(`<h4 id="sign">nice to meet you, ${zodiac}. my sources tell me that this is what you need to hear right now:</h4>`)
-    spot_res_page('body').append(`<p id="horoscope">${emoji} ${horoscope}</p>`);
+    spot_res_page('#call_results').append(`<h4 id="sign">nice to meet you, ${zodiac}. my sources tell me that this is what you need to hear right now:</h4>`)
+    spot_res_page('#call_results').append(`<p id="horoscope">${emoji} ${horoscope}</p>`);
 
     // IBM tone analyzer request body
     toneInput = {
@@ -272,13 +278,13 @@ app.post('/horoscope', function(req, res) {
 
       // Add the mood data to HTML
       if (keywords.length > 1) {
-        spot_res_page('body').append(`<h3>your overall moods today are..</h3>`);
+        spot_res_page('#call_results').append(`<h3>your overall moods today are..</h3>`);
       }
       else {
-        spot_res_page('body').append(`<h3>your overall mood today is...</h3>`);
+        spot_res_page('#call_results').append(`<h3>your overall mood today is...</h3>`);
       }
       for (var word in keywords) {
-        spot_res_page('body').append(`<p class="mood">${keywords[word]}</p>`);
+        spot_res_page('#call_results').append(`<p class="mood">${keywords[word]}</p>`);
 
       }
     // Log the token
@@ -289,11 +295,11 @@ app.post('/horoscope', function(req, res) {
         'Authorization': `Bearer ${req.cookies.spot_token}`
       }
     }).then(data=>data.json()).then(function(response) {
-      spot_res_page('body').append(`<h3>out of your 50 most recently liked Spotify tracks, you probably should listen to these today...</h3>`);
+      spot_res_page('#call_results').append(`<h3>out of your 50 most recently liked Spotify tracks, you probably should listen to these today...</h3>`);
 
       // Get horoscope moods from the resulting HTML page
       var moods = [];
-      spot_res_page('body').find('.mood').each(function(index, element) {
+      spot_res_page('#call_results').find('.mood').each(function(index, element) {
         moods.push(spot_res_page(element).text());
       });
       console.log(`horoscope moods: ${moods}`);
@@ -327,6 +333,6 @@ app.get('/login', function(req, res) {
 });
 
 
-app.listen(process.env.PORT || 8000, function () {
+app.listen(process.env.PORT || 5000, function () {
     console.log("Server is running");
 });
