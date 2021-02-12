@@ -28,7 +28,7 @@ const app = express();
 // Spotify Credentials
 var spot_clientId = "e84e8a4f8df044d994aba8c62c0e1ae8";
 var spot_clientSecret = "354e8292b27445c5a2c85b9978d66906";
-var redirect_uri = "https://zodify.herokuapp.com/callback";
+var redirect_uri = "http://localhost:5000/callback";
 
 //Local testing callback: "http://localhost:5000/callback";
 // Heroku callback: "https://zodify.herokuapp.com/callback"
@@ -307,8 +307,14 @@ app.post('/horoscope', function(req, res) {
       // Return tracks and moods
       return {tracks: tracks, moods:moods};
     }).then(function(tracks) {
+      if (tracks.moods.length>0) {
       // Call function to get moods of songs
-      soundMoodList(tracks.tracks, req.cookies.spot_token, tracks.moods, res);
+        soundMoodList(tracks.tracks, req.cookies.spot_token, tracks.moods, res);
+      }
+      else {
+        spot_res_page('#call_results').append(`<p>whoops, our analyzer can't tell what mood you are today. you're just too complex right now. can i suggest a podcast?</p>`);
+        res.send(spot_res_page.html());
+      }
       });
     });
   });
