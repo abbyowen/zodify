@@ -16,6 +16,7 @@ const cookieParser = require('cookie-parser');
 var fs = require('fs');
 
 
+
 // HTML to add to with API responses
 var spot_res_page = cheerio.load(fs.readFileSync(__dirname + '/callback.html'));
 
@@ -27,8 +28,10 @@ const app = express();
 // Spotify Credentials
 var spot_clientId = "37a4c67a31324d55b9a470dd894574a8";
 var spot_clientSecret = "f7f1a4cd9b4045038a69ec390e0c9352";
-var redirect_uri = "https://zodify.herokuapp.com/callback"
-//"http://localhost:8000/callback";
+var redirect_uri = "http://localhost:8000/callback";
+
+//Local testing callback: "http://localhost:8000/callback";
+// Heroku callback: "https://zodify.herokuapp.com/callback"
 
 // IBM Credentials
 var ibm_api_key = "I4jCw7OGQa0_u-cg-uMp0Ghd12v8vxROdhonVAUxqab3";
@@ -161,6 +164,8 @@ async function soundMoodList(tracks, token, moods, res) {
 
 // Render App Homepage
 app.get('/', function(req, res) {
+  res.clearCookie('spot_token');
+  console.log('Cookies', req.cookies);
   res.sendFile(__dirname + '/index.html');
 });
 
@@ -209,11 +214,14 @@ app.get('/callback', function(req, res) {
     // Save the access token and refresh token into variables
     var accessToken = response.access_token;
     var refreshToken = response.refresh_token;
+
     // Log cookie to save the access token for later use
     res.cookie('spot_token', accessToken);
     console.log('Cookies: ', req.cookies);
     // Redirect to the page where output will be
+
     res.redirect('/horoscope');
+
   });
 });
 
@@ -310,12 +318,13 @@ app.get('/horoscope', function(req, res) {
 
 // Redirect to Spotify login from the home page
 app.get('/login', function(req, res) {
-var scopes = 'user-library-read';
-res.redirect('https://accounts.spotify.com/authorize' +
-  '?response_type=code' +
-  '&client_id=' + spot_clientId +
-  (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
-  '&redirect_uri=' + encodeURIComponent(redirect_uri))
+  var scopes = 'user-library-read';
+  return res.redirect('https://accounts.spotify.com/authorize' +
+    '?response_type=code' +
+    '&client_id=' + spot_clientId +
+    '&show_dialog=true'+
+    (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
+    '&redirect_uri=' + encodeURIComponent(redirect_uri));
 
 });
 
