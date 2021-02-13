@@ -28,7 +28,7 @@ const app = express();
 // Spotify Credentials
 var spot_clientId = "e84e8a4f8df044d994aba8c62c0e1ae8";
 var spot_clientSecret = "354e8292b27445c5a2c85b9978d66906";
-var redirect_uri = "https://zodify.herokuapp.com/callback";
+var redirect_uri = "http://localhost:5000/callback";
 
 //Local testing callback: "http://localhost:5000/callback";
 // Heroku callback: "https://zodify.herokuapp.com/callback"
@@ -101,13 +101,22 @@ function getSign(month, day) {
 /* Function to analyze mood of the song based off of audio-features provided by
 Spotify API
 */
-async function soundMoodList(tracks, token, moods, res) {
+async function soundMoodList(tracks, token, moods, res, song_location) {
   // Loop through user's top 50 tracks
   for (var i in tracks) {
-    // track ID to pass into audio analytics vall
-    var id = tracks[i].track.id;
-    // track name
-    var name = tracks[i].track.name;
+    var id;
+    var name;
+    if (song_location=="liked_tracks") {
+      // track ID to pass into audio analytics vall
+      id = tracks[i].track.id;
+      // track name
+      name = tracks[i].track.name;
+    }
+    else if (song_location=="top_tracks") {
+      id = tracks[i].id;
+
+      name = tracks[i].name;
+    }
 
     // Fetch audio features of each song
     await fetch(`https://api.spotify.com/v1/audio-features/${id}`, {
@@ -226,6 +235,21 @@ app.post('/horoscope', function(req, res) {
   // Log form input
   const mon = req.body.birth_month.split(" ").join("");
   const date = req.body.birth_date.split(" ").join("");
+  const song_location = req.body.song_location;
+
+  console.log(song_location);
+  var url;
+  var text;
+
+  if (song_location=="liked_tracks") {
+    url = `https://api.spotify.com/v1/me/tracks?limit=50`;
+    text = 'out of your 50 most recently liked Spotify tracks, you probably should listen to these today...'
+  }
+  else if (song_location=="top_tracks") {
+    url = `https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=50`;
+    text = 'out of your 50 top tracks from the last 4 weeks, you probably should listen to these today...'
+  }
+  console.log(url);
 
   // Get sign
   var sign = getSign(mon, date);
@@ -289,12 +313,14 @@ app.post('/horoscope', function(req, res) {
     // Log the token
     console.log(req.cookies.spot_token);
     // Fetch user's top 50 songs
-    fetch("https://api.spotify.com/v1/me/tracks?limit=50", {
+    fetch(url, {
       headers: {
-        'Authorization': `Bearer ${req.cookies.spot_token}`
+        'Authorization': `Bearer ${req.cookies.spot_token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       }
     }).then(data=>data.json()).then(function(response) {
-      spot_res_page('#call_results').append(`<h3>out of your 50 most recently liked Spotify tracks, you probably should listen to these today...</h3>`);
+      spot_res_page('#call_results').append(`<h3>${text}</h3>`);
 
       // Get horoscope moods from the resulting HTML page
       var moods = [];
@@ -302,14 +328,17 @@ app.post('/horoscope', function(req, res) {
         moods.push(spot_res_page(element).text());
       });
       console.log(`horoscope moods: ${moods}`);
+      console.log(`url: ${url}`);
+
       // Get tracks from the Spotify API response
       var tracks = response.items;
+      console.log(tracks);
       // Return tracks and moods
       return {tracks: tracks, moods:moods};
     }).then(function(tracks) {
       if (tracks.moods.length>0) {
       // Call function to get moods of songs
-        soundMoodList(tracks.tracks, req.cookies.spot_token, tracks.moods, res);
+        soundMoodList(tracks.tracks, req.cookies.spot_token, tracks.moods, res, song_location);
       }
       else {
         spot_res_page('#call_results').append(`<p>whoops, our analyzer can't tell what mood you are today. you're just too complex right now. can i suggest a podcast?</p>`);
@@ -327,7 +356,7 @@ app.get('/horoscope', function(req, res) {
 
 // Redirect to Spotify login from the home page
 app.get('/login', function(req, res) {
-  var scopes = 'user-library-read';
+  var scopes = 'user-library-read user-top-read';
   return res.redirect('https://accounts.spotify.com/authorize' +
     '?response_type=code' +
     '&client_id=' + spot_clientId +
