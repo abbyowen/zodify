@@ -101,7 +101,6 @@ function getSign(month, day) {
 Spotify API
 */
 async function soundMoodList(tracks, token, moods, res, song_location) {
-  var songs = [];
 
   // Loop through user's top 50 tracks
   for (var i in tracks) {
@@ -109,6 +108,7 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
     var artists =[];
     var id;
     var name;
+    var uri;
     // support for different json responses
     if (song_location=="liked_tracks") {
       // get the artists
@@ -119,6 +119,8 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
       id = tracks[i].track.id;
       // track name
       name = tracks[i].track.name;
+
+      uri = tracks[i].track.uri;
     }
     else if (song_location=="top_tracks") {
       // get the artists
@@ -129,6 +131,8 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
       id = tracks[i].id;
       // track name
       name = tracks[i].name;
+
+      uri = tracks[i].uri;
     }
     else {
       // get the artists
@@ -139,6 +143,8 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
       id = tracks[i].track.id;
       // track name
       name = tracks[i].track.name;
+
+      uri = tracks[i].track.uri;
     }
 
     // Fetch audio features of each song
@@ -157,22 +163,22 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
 
       // Return different moods based off of the values of these attributes
       if (danceability>0.4 && valence>0.5 && energy>0.5 && acousticness<0.5) {
-        return {name: name, tone: "Joy", artists: artists, id: id};
+        return {name: name, tone: "Joy", artists: artists, id: id, uri: uri};
       }
       else if (danceability<0.5 && valence>0.5 && energy<0.5 && acousticness>0.5){
-        return {name: name, tone: "Tentative", artists: artists, id: id}
+        return {name: name, tone: "Tentative", artists: artists, id: id, uri: uri}
       }
       else if (danceability>0.5 && energy>0.4 && acousticness<0.3 && valence<0.5){
-        return {name: name, tone: "Confident", artists: artists, id: id}
+        return {name: name, tone: "Confident", artists: artists, id: id, uri: uri}
       }
       else if (danceability<0.5 && energy<0.5 && acousticness<0.3 && valence<0.5 && mode==0){
-        return {name: name, tone: "Anger", artists: artists, id: id}
+        return {name: name, tone: "Anger", artists: artists, id: id, uri: uri}
       }
       else if (danceability<0.7 && energy<0.5 && acousticness>0.5 && valence<0.5) {
-        return {name: name, tone: "Sadness", artists: artists, id: id}
+        return {name: name, tone: "Sadness", artists: artists, id: id, uri: uri}
       }
       else if (danceability<0.6 && valence>0.5) {
-        return {name: name, tone: "Analytical", artists: artists, id: id}
+        return {name: name, tone: "Analytical", artists: artists, id: id, uri: uri}
       }
       else {
         return {name: name, tone: "NOT YET SUPPORTED"};
@@ -182,7 +188,6 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
       // Check if the song moods are in the horoscope moods
       if (moods.includes(data.tone)) {
         console.log(`match found: ${data.name}`);
-        songs.push(data.id);
 
         // Add song title to the HTML
         var str = `${data.name} - `;
@@ -194,32 +199,21 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
             str = str + data.artists[i] + ', ';
           }
         }
-        spot_res_page('#call_results').append(`<p>${str}</p>`);
+        spot_res_page('#call_results').append(`<p class="song" id="${data.uri}">${str}</p>`);
 
       }
   });
 
-  }
-  console.log(songs);
+}
+
+  spot_res_page('#call_results').append(`
+    <form action='/daily_playlist'><input type="submit" value="make daily playlist"/></form>`
+  );
 
   // Send the HTML to the /horoscope route
   res.send(spot_res_page.html());
   console.log("done!");
 }
-
-async function createPlaylist(songs, token) {
-  fetch(`https://api.spotify.com/v1/me`, {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    }
-  }).then(data=>data.json()).then(function(response){
-    var user_id = response.id;
-    console.log(`user id: ${user_id}`);
-  })
-}
-
 
 // Render App Homepage
 app.get('/', function(req, res) {
@@ -420,7 +414,7 @@ app.get('/horoscope', function(req, res) {
 
 // Redirect to Spotify login from the home page
 app.get('/login', function(req, res) {
-  var scopes = 'user-library-read user-top-read playlist-read-collaborative playlist-read-private user-read-private user-read-email';
+  var scopes = 'user-library-read user-top-read playlist-read-collaborative playlist-read-private user-read-private user-read-email playlist-modify-private';
   return res.redirect('https://accounts.spotify.com/authorize' +
     '?response_type=code' +
     '&client_id=' + spot_clientId +
@@ -428,6 +422,68 @@ app.get('/login', function(req, res) {
     (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
     '&redirect_uri=' + encodeURIComponent(redirect_uri));
 
+});
+
+app.get('/daily_playlist', function(req, res) {
+  fetch(`https://api.spotify.com/v1/me`, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${req.cookies.spot_token}`
+    }
+  }).then(data=>data.json()).then(function(response){
+    var song_list =[];
+    var user_id = response.id;
+    console.log(`user id: ${user_id}`);
+    var songs = spot_res_page(".song");
+
+
+    for (var i=0; i<songs.length; i++) {
+      console.log(songs[i].attribs.id);
+      song_list.push(songs[i].attribs.id);
+    }
+
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+
+    today = mm + '/' + dd + '/' + yyyy;
+
+    fetch(`https://api.spotify.com/v1/users/${user_id}/playlists`, {
+      method: "POST",
+      headers: {
+        'Accept': "application/json",
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${req.cookies.spot_token}`
+      },
+      body:
+        JSON.stringify({"name": `${user_id}'s zodify playlist for ${today}`,
+        "description": `${user_id}, here is a playlist to match your mood brought to you by zodify.`,
+        "public": false
+        })
+      }).then(data=>data.json()).then(function(response) {
+        console.log(response);
+        var href = response.external_urls.spotify;
+
+        fetch(`https://api.spotify.com/v1/playlists/${response.id}/tracks`, {
+          method: "POST",
+          headers: {
+            'Accept': "application/json",
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${req.cookies.spot_token}`
+          },
+          body: JSON.stringify({"uris": song_list})
+        }).then(data=>data.json()).then(function(response) {
+          console.log(response);
+          res.redirect(href);
+        });
+
+
+
+      });
+
+  });
 });
 
 
