@@ -27,7 +27,7 @@ const app = express();
 // Spotify Credentials
 var spot_clientId = "e84e8a4f8df044d994aba8c62c0e1ae8";
 var spot_clientSecret = "354e8292b27445c5a2c85b9978d66906";
-var redirect_uri = "https://zodify.herokuapp.com/callback";
+var redirect_uri = "http://localhost:5000/callback";
 
 //Local testing callback: "http://localhost:5000/callback";
 // Heroku callback: "https://zodify.herokuapp.com/callback"
@@ -217,6 +217,9 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
 
 // Render App Homepage
 app.get('/', function(req, res) {
+  spot_res_page('#call_results').empty();
+  spot_res_page('#location').empty()
+
   res.sendFile(__dirname + '/index.html');
 });
 
@@ -274,6 +277,8 @@ app.get('/callback', function(req, res) {
         'Authorization': `Bearer ${accessToken}`
       }
     }).then(data=>data.json()).then(function(response) {
+        spot_res_page('#location').append(`<option value="liked_tracks">my liked tracks</option>`);
+        spot_res_page('#location').append(`<option value="top_tracks">my top tracks</option>`);
         for (var i=0; i<response.items.length; i++) {
           spot_res_page('#location').append(`<option value="${response.items[i].id}">${response.items[i].name}</option>`);
         }
