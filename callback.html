@@ -52,6 +52,19 @@
         color: white;
         font-family: 'Cutive Mono', monospace;
       }
+      button {
+        transition-duration: 0.5s;
+        text-align: center;
+        margin: 4px 2px;
+        font-size: 15px;
+        background-color: black;
+        border: 2px solid #;
+        color: white;
+      }
+      button:hover {
+        background-color:#1DB954;
+        color: white;
+      }
     </style>
   </head>
 
@@ -68,7 +81,7 @@
       <input type="number" id="birth_date" name="birth_date"><br>
       <label for="song_location">where would you like zodify to draw your songs from?</label>
 
-      <select name="song_location">
+      <select name="song_location" id ="location">
         <option value="liked_tracks">my liked tracks</option>
         <option value="top_tracks">my top tracks</option>
       </select>

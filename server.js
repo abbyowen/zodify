@@ -16,7 +16,6 @@ const cookieParser = require('cookie-parser');
 var fs = require('fs');
 
 
-
 // HTML to add to with API responses
 var spot_res_page = cheerio.load(fs.readFileSync(__dirname + '/callback.html'));
 
@@ -102,20 +101,44 @@ function getSign(month, day) {
 Spotify API
 */
 async function soundMoodList(tracks, token, moods, res, song_location) {
+  var songs = [];
+
   // Loop through user's top 50 tracks
   for (var i in tracks) {
+    console.log(tracks[i]);
+    var artists =[];
     var id;
     var name;
+    // support for different json responses
     if (song_location=="liked_tracks") {
+      // get the artists
+      for (var artist in tracks[i].track.artists) {
+        artists.push(tracks[i].track.artists[artist].name);
+      }
       // track ID to pass into audio analytics vall
       id = tracks[i].track.id;
       // track name
       name = tracks[i].track.name;
     }
     else if (song_location=="top_tracks") {
+      // get the artists
+      for (var artist in tracks[i].artists) {
+        artists.push(tracks[i].artists[artist].name);
+      }
+      // get ID
       id = tracks[i].id;
-
+      // track name
       name = tracks[i].name;
+    }
+    else {
+      // get the artists
+      for (var artist in tracks[i].track.artists) {
+        artists.push(tracks[i].track.artists[artist].name);
+      }
+      // track ID to pass into audio analytics vall
+      id = tracks[i].track.id;
+      // track name
+      name = tracks[i].track.name;
     }
 
     // Fetch audio features of each song
@@ -134,22 +157,22 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
 
       // Return different moods based off of the values of these attributes
       if (danceability>0.4 && valence>0.5 && energy>0.5 && acousticness<0.5) {
-        return {name: name, tone: "Joy"};
+        return {name: name, tone: "Joy", artists: artists, id: id};
       }
       else if (danceability<0.5 && valence>0.5 && energy<0.5 && acousticness>0.5){
-        return {name: name, tone: "Tentative"}
+        return {name: name, tone: "Tentative", artists: artists, id: id}
       }
       else if (danceability>0.5 && energy>0.4 && acousticness<0.3 && valence<0.5){
-        return {name: name, tone: "Confident"}
+        return {name: name, tone: "Confident", artists: artists, id: id}
       }
       else if (danceability<0.5 && energy<0.5 && acousticness<0.3 && valence<0.5 && mode==0){
-        return {name: name, tone: "Anger"}
+        return {name: name, tone: "Anger", artists: artists, id: id}
       }
       else if (danceability<0.7 && energy<0.5 && acousticness>0.5 && valence<0.5) {
-        return {name: name, tone: "Sadness"}
+        return {name: name, tone: "Sadness", artists: artists, id: id}
       }
       else if (danceability<0.6 && valence>0.5) {
-        return {name: name, tone: "Analytical"}
+        return {name: name, tone: "Analytical", artists: artists, id: id}
       }
       else {
         return {name: name, tone: "NOT YET SUPPORTED"};
@@ -159,17 +182,44 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
       // Check if the song moods are in the horoscope moods
       if (moods.includes(data.tone)) {
         console.log(`match found: ${data.name}`);
+        songs.push(data.id);
+
         // Add song title to the HTML
-        spot_res_page('#call_results').append(`<p>${data.name}</p>`);
+        var str = `${data.name} - `;
+        for (var i=0; i<data.artists.length; i++) {
+          if (data.artists[i+1] == null) {
+            str = str + data.artists[i];
+          }
+          else {
+            str = str + data.artists[i] + ', ';
+          }
+        }
+        spot_res_page('#call_results').append(`<p>${str}</p>`);
 
       }
   });
 
   }
+  console.log(songs);
+
   // Send the HTML to the /horoscope route
   res.send(spot_res_page.html());
   console.log("done!");
 }
+
+async function createPlaylist(songs, token) {
+  fetch(`https://api.spotify.com/v1/me`, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  }).then(data=>data.json()).then(function(response){
+    var user_id = response.id;
+    console.log(`user id: ${user_id}`);
+  })
+}
+
 
 // Render App Homepage
 app.get('/', function(req, res) {
@@ -225,7 +275,17 @@ app.get('/callback', function(req, res) {
     console.log('Cookies: ', req.cookies);
     // Redirect to the page where output will be
 
-    res.redirect('/horoscope');
+    fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
+      headers:{
+        'Authorization': `Bearer ${accessToken}`
+      }
+    }).then(data=>data.json()).then(function(response) {
+        for (var i=0; i<response.items.length; i++) {
+          spot_res_page('#location').append(`<option value="${response.items[i].id}">${response.items[i].name}</option>`);
+        }
+        res.redirect('/horoscope');
+      });
+
 
   });
 });
@@ -237,7 +297,7 @@ app.post('/horoscope', function(req, res) {
   const date = req.body.birth_date.split(" ").join("");
   const song_location = req.body.song_location;
 
-  console.log(song_location);
+  console.log(`playlist id: ${song_location}`);
   var url;
   var text;
 
@@ -249,7 +309,11 @@ app.post('/horoscope', function(req, res) {
     url = `https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=50`;
     text = 'out of your 50 top tracks from the last 4 weeks, you probably should listen to these today...'
   }
-  console.log(url);
+  else {
+    url = `https://api.spotify.com/v1/playlists/${song_location}/tracks`;
+    text = `out of your tracks from your chosen playlist, you probably should listen to these today...`;
+  }
+
 
   // Get sign
   var sign = getSign(mon, date);
@@ -332,7 +396,7 @@ app.post('/horoscope', function(req, res) {
 
       // Get tracks from the Spotify API response
       var tracks = response.items;
-      console.log(tracks);
+
       // Return tracks and moods
       return {tracks: tracks, moods:moods};
     }).then(function(tracks) {
@@ -351,12 +415,12 @@ app.post('/horoscope', function(req, res) {
 
 // Render /horoscope page
 app.get('/horoscope', function(req, res) {
-  res.sendFile(__dirname + '/callback.html');
+  res.send(spot_res_page.html());
 })
 
 // Redirect to Spotify login from the home page
 app.get('/login', function(req, res) {
-  var scopes = 'user-library-read user-top-read';
+  var scopes = 'user-library-read user-top-read playlist-read-collaborative playlist-read-private user-read-private user-read-email';
   return res.redirect('https://accounts.spotify.com/authorize' +
     '?response_type=code' +
     '&client_id=' + spot_clientId +
