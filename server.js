@@ -25,16 +25,16 @@ const zodiacSign = require('zodiac-signs')('en-US');
 const app = express();
 
 // Spotify Credentials
-var spot_clientId = "e84e8a4f8df044d994aba8c62c0e1ae8";
-var spot_clientSecret = "354e8292b27445c5a2c85b9978d66906";
+var spot_clientId = process.env.spotify_clientId;//"e84e8a4f8df044d994aba8c62c0e1ae8";
+var spot_clientSecret = process.env.spotify_clientSecret;//"354e8292b27445c5a2c85b9978d66906";
 var redirect_uri = "https://zodify.herokuapp.com/callback";
 
 //Local testing callback: "http://localhost:5000/callback";
 // Heroku callback: "https://zodify.herokuapp.com/callback"
 
 // IBM Credentials
-var ibm_api_key = "I4jCw7OGQa0_u-cg-uMp0Ghd12v8vxROdhonVAUxqab3";
-var ibm_url = "https://api.eu-gb.tone-analyzer.watson.cloud.ibm.com/instances/abd0e9fe-9a76-44d6-8c82-ed27390ae6fe";
+var ibm_api_key = process.env.ibm_api_key;//"I4jCw7OGQa0_u-cg-uMp0Ghd12v8vxROdhonVAUxqab3";
+var ibm_url = process.env.ibm_url;//"https://api.eu-gb.tone-analyzer.watson.cloud.ibm.com/instances/abd0e9fe-9a76-44d6-8c82-ed27390ae6fe";
 
 // IBM packages
 const ToneAnalyzerV3 = require('ibm-watson/tone-analyzer/v3');
@@ -105,6 +105,7 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
   // Loop through user's top 50 tracks
   for (var i in tracks) {
     console.log(tracks[i]);
+
     var artists =[];
     var id;
     var name;
@@ -483,8 +484,6 @@ app.get('/daily_playlist', function(req, res) {
           console.log(response);
           res.redirect(href);
         });
-
-
 
       });
 
