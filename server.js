@@ -25,17 +25,16 @@ const zodiacSign = require('zodiac-signs')('en-US');
 const app = express();
 
 // Spotify Credentials
-var spot_clientId = process.env.spotify_clientId;//"e84e8a4f8df044d994aba8c62c0e1ae8";
-var spot_clientSecret = process.env.spotify_clientSecret;//"354e8292b27445c5a2c85b9978d66906";
+var spot_clientId = process.env.spotify_clientId;
+var spot_clientSecret = process.env.spotify_clientSecret;
 var redirect_uri = "https://zodify.herokuapp.com/callback";
 
 //Local testing callback: "http://localhost:5000/callback";
 // Heroku callback: "https://zodify.herokuapp.com/callback"
 
 // IBM Credentials
-var ibm_api_key = process.env.ibm_api_key;//"I4jCw7OGQa0_u-cg-uMp0Ghd12v8vxROdhonVAUxqab3";
-var ibm_url = process.env.ibm_url;//"https://api.eu-gb.tone-analyzer.watson.cloud.ibm.com/instances/abd0e9fe-9a76-44d6-8c82-ed27390ae6fe";
-
+var ibm_api_key = process.env.ibm_api_key;
+var ibm_url = process.env.ibm_url;
 // IBM packages
 const ToneAnalyzerV3 = require('ibm-watson/tone-analyzer/v3');
 const { IamAuthenticator } = require('ibm-watson/auth');
@@ -192,6 +191,7 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
 
         // Add song title to the HTML
         var str = `${data.name} - `;
+        // Create string for artists of each song
         for (var i=0; i<data.artists.length; i++) {
           if (data.artists[i+1] == null) {
             str = str + data.artists[i];
@@ -200,13 +200,13 @@ async function soundMoodList(tracks, token, moods, res, song_location) {
             str = str + data.artists[i] + ', ';
           }
         }
+        // Add song to the HTML of the results div of the HTML page
         spot_res_page('#call_results').append(`<p class="song" id="${data.uri}">${str}</p>`);
 
       }
   });
-
 }
-
+  // Add the create playlist button to the HTML
   spot_res_page('#call_results').append(`
     <form action='/daily_playlist'><input type="submit" value="make daily playlist"/></form>`
   );
@@ -273,47 +273,53 @@ app.get('/callback', function(req, res) {
     console.log('Cookies: ', req.cookies);
     // Redirect to the page where output will be
 
+    // Get the users most recent 50 playlists that songs could be chosen from
     fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
       headers:{
         'Authorization': `Bearer ${accessToken}`
       }
     }).then(data=>data.json()).then(function(response) {
+        // Add options for songs to be drawn from
         spot_res_page('#location').append(`<option value="liked_tracks">my liked tracks</option>`);
         spot_res_page('#location').append(`<option value="top_tracks">my top tracks</option>`);
+        // Add users playlist to the dropdown menu
         for (var i=0; i<response.items.length; i++) {
           spot_res_page('#location').append(`<option value="${response.items[i].id}">${response.items[i].name}</option>`);
         }
         res.redirect('/horoscope');
       });
-
-
   });
 });
 
 // Send form data (month and day) to the page to be used for the horoscope call
 app.post('/horoscope', function(req, res) {
-  // Log form input
+  // Get form input
   const mon = req.body.birth_month.split(" ").join("");
   const date = req.body.birth_date.split(" ").join("");
   const song_location = req.body.song_location;
 
   console.log(`playlist id: ${song_location}`);
+
+  // Spotify endpoint to be used to get songs
   var url;
+  // Text header of the song list
   var text;
 
+  // 50 Most recently listened to songs endpoint
   if (song_location=="liked_tracks") {
     url = `https://api.spotify.com/v1/me/tracks?limit=50`;
     text = 'out of your 50 most recently liked Spotify tracks, you probably should listen to these today...'
   }
+  // User's top tracks endpoint
   else if (song_location=="top_tracks") {
     url = `https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=50`;
     text = 'out of your 50 top tracks from the last 4 weeks, you probably should listen to these today...'
   }
+  // Playlist items endpoint
   else {
     url = `https://api.spotify.com/v1/playlists/${song_location}/tracks`;
     text = `out of your tracks from your chosen playlist, you probably should listen to these today...`;
   }
-
 
   // Get sign
   var sign = getSign(mon, date);
@@ -404,6 +410,7 @@ app.post('/horoscope', function(req, res) {
       // Call function to get moods of songs
         soundMoodList(tracks.tracks, req.cookies.spot_token, tracks.moods, res, song_location);
       }
+      // Log this text if the IBM Tone Analyzer doesn't have enough information to get text tones
       else {
         spot_res_page('#call_results').append(`<p>whoops, our analyzer can't tell what mood you are today. you're just too complex right now. can i suggest a podcast?</p>`);
         res.send(spot_res_page.html());
@@ -420,17 +427,20 @@ app.get('/horoscope', function(req, res) {
 
 // Redirect to Spotify login from the home page
 app.get('/login', function(req, res) {
+  // Scopes for API OAuth
   var scopes = 'user-library-read user-top-read playlist-read-collaborative playlist-read-private user-read-private user-read-email playlist-modify-private';
+  // Redirect to the login page for Spotify authorization
   return res.redirect('https://accounts.spotify.com/authorize' +
     '?response_type=code' +
     '&client_id=' + spot_clientId +
     '&show_dialog=true'+
     (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
     '&redirect_uri=' + encodeURIComponent(redirect_uri));
-
 });
 
+// Playlist creation page which will make a daily playlist of the songs that match daily horoscope tones
 app.get('/daily_playlist', function(req, res) {
+  // Get the current user's Spotify ID
   fetch(`https://api.spotify.com/v1/me`, {
     headers: {
       'Accept': 'application/json',
@@ -438,17 +448,20 @@ app.get('/daily_playlist', function(req, res) {
       'Authorization': `Bearer ${req.cookies.spot_token}`
     }
   }).then(data=>data.json()).then(function(response){
+    // Initialize list of songs to add to the playlist
     var song_list =[];
+    // Current user ID
     var user_id = response.id;
     console.log(`user id: ${user_id}`);
+    // Get songs through songs of class .song on spot_res_page
     var songs = spot_res_page(".song");
-
-
+    // Add each element with this id to the song list
     for (var i=0; i<songs.length; i++) {
       console.log(songs[i].attribs.id);
       song_list.push(songs[i].attribs.id);
     }
 
+    // Get the current date to add to the title of the playlist
     var today = new Date();
     var dd = String(today.getDate()).padStart(2, '0');
     var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
@@ -456,6 +469,7 @@ app.get('/daily_playlist', function(req, res) {
 
     today = mm + '/' + dd + '/' + yyyy;
 
+    // Create empty playlist Spotify endpoint
     fetch(`https://api.spotify.com/v1/users/${user_id}/playlists`, {
       method: "POST",
       headers: {
@@ -464,14 +478,16 @@ app.get('/daily_playlist', function(req, res) {
         'Authorization': `Bearer ${req.cookies.spot_token}`
       },
       body:
+        // Playlist descriptions and names
         JSON.stringify({"name": `${user_id}'s zodify playlist for ${today}`,
         "description": `${user_id}, here is a playlist to match your mood brought to you by zodify.`,
         "public": false
         })
       }).then(data=>data.json()).then(function(response) {
         console.log(response);
+        // The URL of the playlist that the user will be redirected to
         var href = response.external_urls.spotify;
-
+        // Add items to a playlist endpoint
         fetch(`https://api.spotify.com/v1/playlists/${response.id}/tracks`, {
           method: "POST",
           headers: {
@@ -479,18 +495,19 @@ app.get('/daily_playlist', function(req, res) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${req.cookies.spot_token}`
           },
+          // List of song URIs
           body: JSON.stringify({"uris": song_list})
         }).then(data=>data.json()).then(function(response) {
           console.log(response);
+          // Redirect the user to their new Spotify playlist
           res.redirect(href);
         });
 
       });
-
   });
 });
 
-
+// Start server
 app.listen(process.env.PORT || 5000, function () {
     console.log("Server is running");
 });
