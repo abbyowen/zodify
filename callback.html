@@ -13,15 +13,20 @@
       form {
         color: white;
         font-family: 'Cutive Mono', monospace;
+        text-align: center;
       }
       h3 {
         color: #1DB954;
         font-family: 'Cutive Mono', monospace;
         font-style: oblique;
+        text-align: center;
+
       }
       h2 {
         color: white;
         font-family: 'Cutive Mono', monospace;
+        display: block;
+        text-align: center;
       }
       input[type=submit] {
         background-color: #1DB954;
@@ -65,14 +70,24 @@
         background-color:#1DB954;
         color: white;
       }
+      img {
+        display: block;
+        width: 20%;
+        height: 20%;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 10%;
+      }
+
     </style>
   </head>
 
-  <h1>zodify</h1>
-
-  <h2>you're almost there...</h3>
-
   <body>
+    <img src = "Zodify Logo.png" alt="zodify">
+
+    <h2>you're almost there...</h3>
+
+
     <h3>next, i need some information about your birthday. don't worry, you won't need to text your mother for your birth time.</h3>
     <form action='/horoscope' method="POST">
       <label for="birth_month">birth month:</label><br>
@@ -98,7 +113,7 @@
       <select name="song_location" id ="location">
         <option value="liked_tracks">my liked tracks</option>
         <option value="top_tracks">my top tracks</option>
-      </select>
+      </select><br>
       <input type="submit" value="submit">
     </form>
     <div id="call_results"></div>
