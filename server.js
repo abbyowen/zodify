@@ -57,6 +57,8 @@ app.use('/callback', function(req, res, next) {
 // Use cookie-parser
 app.use(cookieParser());
 
+app.use(express.static('zodifylogo.png'));
+
 // Get zodiac sign function
 function getSign(month, day) {
   // Send month input to lower case
