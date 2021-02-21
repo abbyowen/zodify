@@ -57,7 +57,10 @@ app.use('/callback', function(req, res, next) {
 // Use cookie-parser
 app.use(cookieParser());
 
-app.use(express.static('zodifylogo.png'));
+app.get('/zodifylogo.png', function(req, res) {
+  res.sendFile(__dirname + '/zodifylogo.png');
+
+});
 
 // Get zodiac sign function
 function getSign(month, day) {
